@@ -33,14 +33,12 @@ np.random.seed(global_seed)
 torch.backends.cudnn.benchmark = True
 
 # Training files
-core_dir = '/media/yanni/Data/multicoil_train'
-# core_dir    = '/media/marius/easystore/marius/multicoil_train'
+core_dir    = '/media/marius/easystore/marius/multicoil_train'
 maps_dir    = '/media/marius/easystore/marius/multicoil_train_Wc0_Espirit_maps'
 train_files = sorted(glob.glob(core_dir + '/*.h5'))
 train_maps  = sorted(glob.glob(maps_dir + '/*.h5'))
 # Validation files
-core_dir = '/media/yanni/Data/multicoil_val'
-# core_dir  = '/media/marius/easystore/marius/multicoil_val'
+core_dir  = '/media/marius/easystore/marius/multicoil_val'
 maps_dir  = '/media/marius/easystore/marius/multicoil_val_Wc0_Espirit_maps'
 val_files = sorted(glob.glob(core_dir + '/*.h5'))
 val_maps  = sorted(glob.glob(maps_dir + '/*.h5'))
