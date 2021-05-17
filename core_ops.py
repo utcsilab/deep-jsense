@@ -156,7 +156,6 @@ def TorchHybridSense(img_kernel_shape,
         img_ksp = torch_fft.ifftshift(img_ksp, dim=(-2, -1))
         
         # Pointwise complex multiply with complex conjugate maps
-        # !!! This one is contrived, because it's also missing the .flip, making it overall correct
         mult_result = img_ksp * torch.conj(img_y)
         # Sum on coil axis
         x_adj = torch.sum(mult_result, dim=0)
@@ -217,7 +216,7 @@ def TorchHybridImage(mps_kernel_shape,
             ksp_padding[-4], ksp_padding[-3]))
         # Get image representations
         img_ksp = torch_fft.ifftshift(ksp_padded, dim=(-2, -1))
-        img_ksp = torch_fft.ifft2(img_ksp, dim=(-2, -1), norm='forward')
+        img_ksp = torch_fft.ifft2(img_ksp, dim=(-2, -1), norm='ortho')
         img_ksp = torch_fft.fftshift(img_ksp, dim=(-2, -1))
         
         # Pointwise complex multiply (with conjugate image and broadcasting)
@@ -225,7 +224,7 @@ def TorchHybridImage(mps_kernel_shape,
         
         # Convert back to k-space
         result = torch_fft.fftshift(mult_result, dim=(-2, -1))
-        result = torch_fft.fft2(result, dim=(-2, -1), norm='ortho')
+        result = torch_fft.fft2(result, dim=(-2, -1), norm='backward')
         result = torch_fft.ifftshift(result, dim=(-2, -1))   
         
         # Central crop
