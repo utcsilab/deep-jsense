@@ -95,7 +95,7 @@ def zconjgrad(x, b, Aop_fun, max_iter=10, l2lam=0., eps=1e-4, verbose=True):
             break
 
         Ap   = Aop_fun(p) + l2lam * p
-        pAp  = zdot_batch(p, Ap)
+        pAp  = zdot_batch(p, Ap).real
         alpha = (rsold / pAp).reshape(reshape)
 
         x = x + alpha * p
