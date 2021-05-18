@@ -133,7 +133,7 @@ def TorchHybridSense(img_kernel_shape,
         # Convert back to k-space
         # !!! The squared normalization before cancels the required normalization here
         result = torch_fft.ifftshift(mult_result, dim=(-2, -1))
-        result = torch_fft.fft2(result, dim=(-2, -1), norm='backward')
+        result = torch_fft.fft2(result, dim=(-2, -1), norm='ortho')
         result = torch_fft.fftshift(result, dim=(-2, -1))
         
         # Central crop
