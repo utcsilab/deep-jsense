@@ -24,7 +24,7 @@ num_slices   = 5
 acs_lines = 12
 
 # Outputs
-output_dir = '%s_Wc0_Espirit_maps_acs%d' % (core_mode, acs_lines)
+output_dir = 'Wc0_Espirit_maps_acs%d' % (acs_lines)
 os.makedirs(output_dir, exist_ok=True)
 
 # For each file and slice
