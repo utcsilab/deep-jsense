@@ -14,7 +14,7 @@ from tqdm import tqdm
 from bart import bart
 
 # Load list of files
-train_dir   = '/mnt/hdd15/marius/%s' % core_mode
+train_dir   = '/your/path/here'
 train_files = glob.glob(core_dir + '/*.h5')
 
 # Estimate maps for a limited 'num_slices' around 'center_slice'
