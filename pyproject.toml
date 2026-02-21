@@ -10,6 +10,9 @@ dependencies = [
     "matplotlib==3.6.3",
     "numpy==1.19.5",
     "sigpy==0.1.27",
-    "torch==1.9",
+    "torch==1.9.0+cu111",
     "tqdm==4.67.3",
 ]
+
+[tool.uv]
+find-links = ["https://download.pytorch.org/whl/cu111/torch_stable.html"]

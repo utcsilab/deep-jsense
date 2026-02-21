@@ -5,10 +5,9 @@ requires-python = "==3.9.*"
 [[package]]
 name = "colorama"
 version = "0.4.6"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44", size = 27697, upload-time = "2022-10-25T02:36:22.414Z" }
+source = { registry = "https://download.pytorch.org/whl/cu111/torch_stable.html" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335, upload-time = "2022-10-25T02:36:20.889Z" },
+    { url = "https://download.pytorch.org/whl/colorama-0.4.6-py2.py3-none-any.whl" },
 ]
 
 [[package]]
@@ -64,7 +63,7 @@ requires-dist = [
     { name = "matplotlib", specifier = "==3.6.3" },
     { name = "numpy", specifier = "==1.19.5" },
     { name = "sigpy", specifier = "==0.1.27" },
-    { name = "torch", specifier = "==1.9" },
+    { name = "torch", specifier = "==1.9.0+cu111" },
     { name = "tqdm", specifier = "==4.67.3" },
 ]
 
@@ -341,17 +340,14 @@ wheels = [
 
 [[package]]
 name = "torch"
-version = "1.9.0"
-source = { registry = "https://pypi.org/simple" }
+version = "1.9.0+cu111"
+source = { registry = "https://download.pytorch.org/whl/cu111/torch_stable.html" }
 dependencies = [
     { name = "typing-extensions" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/18/dc/364619ec35762f0fda9b1ac5bc73e4372a0e451f15e38ef601d3ef006a17/torch-1.9.0-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:95eeec3a6c42fd35aca552777b7d9979ed489760423de97c0118a45e849a61f4", size = 831430881, upload-time = "2021-06-15T15:20:59.327Z" },
-    { url = "https://files.pythonhosted.org/packages/82/10/8bdc31700920d8ebb237993b9809eee0714fc01506b70ddbef577a886fdf/torch-1.9.0-cp39-cp39-manylinux2014_aarch64.whl", hash = "sha256:8a2b2012b3c7d6019e189496688fa77de7029a220840b406d8302d1c8021a11c", size = 48983781, upload-time = "2021-06-15T15:52:14.3Z" },
-    { url = "https://files.pythonhosted.org/packages/33/87/2feed4e8d824738bf886cfd7776b9ad38ae0831c4adff0d6c80bb6769390/torch-1.9.0-cp39-cp39-win_amd64.whl", hash = "sha256:7e2b14fe5b3a8266cbe2f6740c0195497507974ced7bc21e99971561913a0c28", size = 221965728, upload-time = "2021-06-15T15:26:54.934Z" },
-    { url = "https://files.pythonhosted.org/packages/0c/e9/6ca380d925b3a834f0cb1cac75e4bb53c74a6170bb9b6ec40315501cbdfa/torch-1.9.0-cp39-none-macosx_10_9_x86_64.whl", hash = "sha256:0a9e74b5057463ce4e55d9332a5670993fc9e1299c52e1740e505eda106fb355", size = 127925670, upload-time = "2021-06-15T15:28:01.102Z" },
-    { url = "https://files.pythonhosted.org/packages/0d/e4/8e37e9675dc11ac1a01227e94a1aecef75427102273ba500fe60a93d54a4/torch-1.9.0-cp39-none-macosx_11_0_arm64.whl", hash = "sha256:569ead6ae6bb0e636df0fc8af660ef03260e630dc5f2f4cf3198027e7b6bb481", size = 41524757, upload-time = "2021-06-15T16:16:12.878Z" },
+    { url = "https://download.pytorch.org/whl/cu111/torch-1.9.0%2Bcu111-cp39-cp39-linux_x86_64.whl" },
+    { url = "https://download.pytorch.org/whl/cu111/torch-1.9.0%2Bcu111-cp39-cp39-win_amd64.whl" },
 ]
 
 [[package]]
