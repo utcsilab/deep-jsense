@@ -1,4 +1,0 @@
-tqdm
-dotmap
-sigpy
-h5py
