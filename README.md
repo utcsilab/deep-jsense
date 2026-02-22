@@ -7,9 +7,9 @@ Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/).
 # Training on FastMRI knee scans
 Run `uv run train.py --data_dir /path/to/fastMRI`.
 
-The passed directory must contain the `multicoil_train` and `multicoil_val` sub-directories.
+The passed directory must contain the `multicoil_train` and `multicoil_val` sub-directories with [FastMRI](https://fastmri.med.nyu.edu/) `.h5` unmodified files inside.
 
 # Inference on FastMRI knee scans
 Run `uv run inference.py --data_dir /path/to/fastMRI`.
 
-The passed directory must contan the `multicoil_val` sub-directory.
+The passed directory must contan the `multicoil_val` sub-directory with FastMRI `.h5` unmodified files inside.
