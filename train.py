@@ -34,12 +34,9 @@ parser = argparse.ArgumentParser(description="Train DeepJSense")
 parser.add_argument("--data_dir", type=str, required=True)
 args = parser.parse_args()
 
-# Training files
-core_dir = f"{args.data_dir}/multicoil_train"
-train_files = sorted(glob.glob(core_dir + "/*.h5"))
-# Validation files
-core_dir = f"{args.data_dir}/multicoil_val"
-val_files = sorted(glob.glob(core_dir + "/*.h5"))
+# Training and validation files
+train_files = sorted(glob.glob(f"{args.data_dir}/multicoil_train/*.h5"))
+val_files = sorted(glob.glob(f"{args.data_dir}/multicoil_val/*.h5"))
 
 # How much data are we using
 # 'num_slices' around 'central_slice' from each scan

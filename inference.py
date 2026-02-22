@@ -19,8 +19,7 @@ parser.add_argument("--data_dir", type=str, required=True)
 args = parser.parse_args()
 
 # Validation data
-core_dir = f"{args.data_dir}/multicoil_val"
-val_files = sorted(glob.glob(core_dir + "/*.h5"))
+val_files = sorted(glob.glob(f"{args.data_dir}/multicoil_val/*.h5"))
 
 # Load pretrained model
 filename = "pretrained_models/knee.pt"
