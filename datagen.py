@@ -179,9 +179,9 @@ class MCFullFastMRI(Dataset):
         # Get ACS region
         if self.use_acs:
             if self.direction == "y":
-                acs = k_image[..., center_slice_idx.astype(np.int)]
+                acs = k_image[..., center_slice_idx.astype(int)]
             elif self.direction == "x":
-                acs = k_image[..., center_slice_idx.astype(np.int), :]
+                acs = k_image[..., center_slice_idx.astype(int), :]
         else:
             # Scale w.r.t. to the entire image
             acs = gt_ksp
