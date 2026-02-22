@@ -1,9 +1,15 @@
 # deep-jsense
 Code for Deep J-Sense: Accelerated MRI Reconstruction via Unrolled Alternating Optimization
 
-# Installation
-Install `uv`.
+# Pre-requisites
+Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/).
 
-Then, run `uv sync` to install all dependencies.
+# Training on FastMRI knee scans
+Run `uv run train.py --data_dir /path/to/fastMRI`.
 
-Then, to activate the virtual environment, run `source .venv/bin/activate` on Linux or `.venv/bin/activate` on Windows.
+The passed directory must contain the `multicoil_train` and `multicoil_val` sub-directories.
+
+# Inference on FastMRI knee scans
+Run `uv run inference.py --data_dir /path/to/fastMRI`.
+
+The passed directory must contan the `multicoil_val` sub-directory.
