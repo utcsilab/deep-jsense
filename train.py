@@ -30,8 +30,8 @@ np.random.seed(global_seed)
 torch.backends.cudnn.benchmark = True
 
 # Arguments
-parser = argparse.ArgumentParser(description='Train DeepJSense')
-parser.add_argument('--data_dir', type=str, required=True)
+parser = argparse.ArgumentParser(description="Train DeepJSense")
+parser.add_argument("--data_dir", type=str, required=True)
 args = parser.parse_args()
 
 # Training files
@@ -143,7 +143,7 @@ for num_unrolls in range(hparams.meta_unrolls_start, hparams.meta_unrolls_end + 
 
     # Get optimizer and scheduler
     optimizer = Adam(model.parameters(), lr=hparams.lr)
-    scheduler = StepLR(optimizer, hparams.step_size, gamma=hparams.decay_gamma)        
+    scheduler = StepLR(optimizer, hparams.step_size, gamma=hparams.decay_gamma)
 
     # Logs
     rss_log, ssim_log, coil_log = [], [], []

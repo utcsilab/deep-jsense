@@ -14,8 +14,8 @@ from utils import ifft
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Arguments
-parser = argparse.ArgumentParser(description='Inference with DeepJSense')
-parser.add_argument('--data_dir', type=str, required=True)
+parser = argparse.ArgumentParser(description="Inference with DeepJSense")
+parser.add_argument("--data_dir", type=str, required=True)
 args = parser.parse_args()
 
 # Validation data
