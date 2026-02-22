@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import argparse
 import glob
 
 import matplotlib.pyplot as plt
@@ -12,8 +13,13 @@ from utils import ifft
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Arguments
+parser = argparse.ArgumentParser(description='Inference with DeepJSense')
+parser.add_argument('--data_dir', type=str, required=True)
+args = parser.parse_args()
+
 # Validation data
-core_dir = "/path/to/multicoil_val"
+core_dir = f"{args.data_dir}/multicoil_val"
 val_files = sorted(glob.glob(core_dir + "/*.h5"))
 
 # Load pretrained model

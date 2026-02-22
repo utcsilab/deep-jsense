@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import argparse
 import torch, os, glob, copy
 import numpy as np
 from tqdm import tqdm
@@ -28,11 +29,16 @@ np.random.seed(global_seed)
 # Enable cuDNN kernel selection
 torch.backends.cudnn.benchmark = True
 
+# Arguments
+parser = argparse.ArgumentParser(description='Train DeepJSense')
+parser.add_argument('--data_dir', type=str, required=True)
+args = parser.parse_args()
+
 # Training files
-core_dir = "/path/to/multicoil_train"
+core_dir = f"{args.data_dir}/multicoil_train"
 train_files = sorted(glob.glob(core_dir + "/*.h5"))
 # Validation files
-core_dir = "/path/to/multicoil_val"
+core_dir = f"{args.data_dir}/multicoil_val"
 val_files = sorted(glob.glob(core_dir + "/*.h5"))
 
 # How much data are we using
@@ -52,7 +58,7 @@ hparams.img_sep = False  # Do we use separate networks at each unroll?
 # Data
 hparams.downsample = 4  # R
 hparams.use_acs = True
-hparams.acs_lines = 1  # Ignored if 'use_acs' = True
+hparams.acs_lines = None  # Ignored if 'use_acs' = True
 # Model
 hparams.use_img_net = True
 hparams.use_map_net = True
@@ -63,7 +69,6 @@ hparams.l2lam_init = 0.01
 hparams.l2lam_train = True
 hparams.meta_unrolls_start = 1  # Starting value
 hparams.meta_unrolls_end = 6  # Ending value
-hparams.meta_preload = 1  # Warm start from unrolls
 hparams.block1_max_iter = 4
 hparams.block2_max_iter = 4
 hparams.cg_eps = 1e-6
@@ -115,47 +120,35 @@ model = model.cuda()
 model.train()
 # Count parameters
 total_params = np.sum([np.prod(p.shape) for p in model.parameters() if p.requires_grad])
-print("Total parameters %d" % total_params)
+print(f"Total parameters {total_params}")
 
 # Loss functions and metrics
 ssim = SSIMLoss().cuda()
 multicoil_loss = MCLoss().cuda()
 pixel_loss = torch.nn.MSELoss(reduction="sum")
 
-# For each number of unrolls
+# Warm-up by increasing number of unrolls
+last_epoch = None
 for num_unrolls in range(hparams.meta_unrolls_start, hparams.meta_unrolls_end + 1):
-    # Warm-up or not
     if num_unrolls < hparams.meta_unrolls_end:
-        last_epoch = hparams.num_epochs = 1
+        if last_epoch:
+            # Load model with one less unroll
+            target_dir = f"{global_dir}/N{num_unrolls - 1}_n{hparams.block1_max_iter}"
+            previous_model = f"{target_dir}/ckpt_epoch{last_epoch - 1}.pt"
+            contents = torch.load(previous_model)
+            model.load_state_dict(contents["model_state_dict"])
+        last_epoch = hparams.num_epochs = num_unrolls
     else:
-        hparams.num_epochs = 30  # 20 is sufficient for five slices
+        hparams.num_epochs = 30
 
     # Get optimizer and scheduler
     optimizer = Adam(model.parameters(), lr=hparams.lr)
-    scheduler = StepLR(optimizer, hparams.step_size, gamma=hparams.decay_gamma)
-
-    # If we're beyond the first step, preload weights and state
-    if num_unrolls > hparams.meta_preload:
-        target_dir = global_dir + "/N%d_n%d_ACSlines%d" % (
-            num_unrolls - 1,
-            hparams.block1_max_iter,
-            hparams.acs_lines,
-        )
-        # Load model with one less unroll
-        contents = torch.load(target_dir + "/ckpt_epoch%d.pt" % last_epoch - 1)
-        model.load_state_dict(contents["model_state_dict"])
+    scheduler = StepLR(optimizer, hparams.step_size, gamma=hparams.decay_gamma)        
 
     # Logs
-    best_loss = np.inf
-    ssim_log = []
-    loss_log = []
-    coil_log = []
-    running_loss, running_ssim, running_coil = 0, -1.0, 0.0
-    local_dir = global_dir + "/N%d_n%d_ACSlines%d" % (
-        num_unrolls,
-        hparams.block1_max_iter,
-        hparams.acs_lines,
-    )
+    rss_log, ssim_log, coil_log = [], [], []
+    running_rss, running_ssim, running_coil = None, None, None
+    local_dir = f"{global_dir}/N{num_unrolls}_n{hparams.block1_max_iter}"
     os.makedirs(local_dir, exist_ok=True)
 
     # For each epoch
@@ -180,7 +173,7 @@ for num_unrolls in range(hparams.meta_unrolls_start, hparams.meta_unrolls_end + 
             # Get outputs
             est_img_kernel, est_map_kernel, est_ksp = model(sample, num_unrolls)
 
-            # Extra padding with zero lines - to restore resolution
+            # Padding with zero lines to restore original resolution
             est_ksp_padded = F.pad(
                 est_ksp,
                 (
@@ -205,14 +198,14 @@ for num_unrolls in range(hparams.meta_unrolls_start, hparams.meta_unrolls_end + 
 
             # Other metrics for tracking
             with torch.no_grad():
-                pix_loss = pixel_loss(est_crop_rss, gt_rss)
+                rss_loss = pixel_loss(est_crop_rss, gt_rss)
                 coil_loss = multicoil_loss(est_ksp, sample["gt_nonzero_ksp"])
 
             loss = ssim_loss
             if np.isnan(loss.item()):
                 print("Skipping a NaN loss!")
                 # Free up as much memory as possible
-                del loss, ssim_loss, pix_loss, coil_loss
+                del loss, ssim_loss, rss_loss, coil_loss
                 del est_crop_rss, gt_rss, data_range
                 del est_img_rss, est_img_coils, est_ksp_padded
                 del est_img_kernel, est_map_kernel, est_ksp
@@ -228,17 +221,15 @@ for num_unrolls in range(hparams.meta_unrolls_start, hparams.meta_unrolls_end + 
             # Keep a running loss
             running_ssim = (
                 0.99 * running_ssim + 0.01 * (1 - ssim_loss.item())
-                if running_ssim > -1.0
+                if running_ssim
                 else (1 - ssim_loss.item())
             )
-            running_loss = (
-                0.99 * running_loss + 0.01 * pix_loss.item() if running_loss > 0.0 else pix_loss.item()
-            )
+            running_rss = 0.99 * running_rss + 0.01 * rss_loss.item() if running_rss else rss_loss.item()
             running_coil = (
-                0.99 * running_coil + 0.01 * coil_loss.item() if running_coil > 0.0 else coil_loss.item()
+                0.99 * running_coil + 0.01 * coil_loss.item() if running_coil else coil_loss.item()
             )
 
-            loss_log.append(running_loss)
+            rss_log.append(running_rss)
             ssim_log.append(running_ssim)
             coil_log.append(running_coil)
 
@@ -250,47 +241,26 @@ for num_unrolls in range(hparams.meta_unrolls_start, hparams.meta_unrolls_end + 
             optimizer.zero_grad()
             loss.backward()
             # Clip gradients for stability
-            torch.nn.utils.clip_grad_norm(model.parameters(), hparams.grad_clip)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), hparams.grad_clip)
             optimizer.step()
-
-            # Save best model
-            if running_loss < best_loss:
-                best_loss = running_loss
-                torch.save(
-                    {
-                        "epoch": epoch_idx,
-                        "sample_idx": sample_idx,
-                        "model_state_dict": model.state_dict(),
-                        "optimizer_state_dict": optimizer.state_dict(),
-                        "ssim_log": ssim_log,
-                        "loss_log": loss_log,
-                        "coil_log": coil_log,
-                        "loss": loss,
-                        "hparams": hparams,
-                    },
-                    local_dir + "/best_weights.pt",
-                )
 
             # Verbose
             print(
-                "Epoch %d, Step %d, Batch loss %.4f. Avg. SSIM %.4f, Avg. RSS %.4f, Avg. Coils %.4f"
-                % (epoch_idx, sample_idx, loss.item(), running_ssim, running_loss, running_coil)
+                f"Epoch {epoch_idx}, Step {sample_idx}, Loss {loss.item():.4f}, SSIM {running_ssim:.4f}, RSS Loss {running_rss:.4f}, Coil Loss {running_coil:.4f}"
             )
 
-        # Save models
-        last_weights = local_dir + "/ckpt_epoch%d.pt" % epoch_idx
+        # Save model
         torch.save(
             {
                 "epoch": epoch_idx,
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
                 "ssim_log": ssim_log,
-                "loss_log": loss_log,
+                "rss_log": rss_log,
                 "coil_log": coil_log,
-                "loss": loss,
                 "hparams": hparams,
             },
-            last_weights,
+            f"{local_dir}/ckpt_epoch{epoch_idx}.pt",
         )
 
         # Scheduler
@@ -332,8 +302,13 @@ for num_unrolls in range(hparams.meta_unrolls_start, hparams.meta_unrolls_end + 
                 est_crop_rss = crop(est_img_rss, 320, 320)
 
                 # Losses
-                ssim_loss = ssim(est_crop_rss[:, None], sample["ref_rss"][:, None], sample["data_range"])
-                l1_loss = pixel_loss(est_crop_rss, sample["ref_rss"])
+                val_ssim_loss = ssim(
+                    est_crop_rss[:, None], sample["ref_rss"][:, None], sample["data_range"]
+                )
+                val_rss_loss = pixel_loss(est_crop_rss, sample["ref_rss"])
+                print(
+                    f"Val. Epoch {epoch_idx}, Sample {sample_idx}, SSIM {val_ssim_loss.item():.4f}, RSS {val_rss_loss.item():.4f}"
+                )
 
             # Plot
             plt.subplot(2, 4, sample_idx + 1)
@@ -347,5 +322,5 @@ for num_unrolls in range(hparams.meta_unrolls_start, hparams.meta_unrolls_end + 
 
         # Save
         plt.tight_layout()
-        plt.savefig(local_dir + "/val_samples_epoch%d.png" % epoch_idx, dpi=300)
+        plt.savefig(f"{local_dir}/val_samples_epoch{epoch_idx}.png", dpi=300)
         plt.close()
