@@ -66,6 +66,7 @@ class MCFullFastMRI(Dataset):
         with h5py.File(self.sample_list[sample_idx], 'r') as contents:
             # Get k-space for specific slice
             k_image = np.asarray(contents['kspace'][slice_idx])
+            ref_rss = np.asarray(contents['reconstruction_rss'][slice_idx])
             # Store core file
             core_file  = os.path.basename(self.sample_list[sample_idx])
             core_slice = slice_idx
@@ -176,6 +177,9 @@ class MCFullFastMRI(Dataset):
         max_acs            = np.max(np.abs(acs))
         k_normalized_image = k_image / max_acs
         gt_ksp             = gt_ksp / max_acs
+        # Scaled GT RSS
+        ref_rss      = ref_rss / max_acs
+        data_range   = np.max(ref_rss)
         
         # Initial sensitivity maps
         x_coils    = sp.ifft(k_image, axes=(-2, -1))
@@ -201,6 +205,8 @@ class MCFullFastMRI(Dataset):
                   'mask': k_sampling_mask.astype(np.float32),
                   'acs_lines': len(center_slice_idx),
                   'dead_lines': dead_lines,
+                  'ref_rss': ref_rss.astype(np.float32),
+                  'data_range': data_range,
                   'core_file': core_file,
                   'core_slice': core_slice,
                   'max_acs': max_acs}
