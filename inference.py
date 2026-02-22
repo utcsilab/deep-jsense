@@ -13,11 +13,11 @@ from utils import ifft
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Validation data
-core_dir  = '/media/marius/19a01a60-06d7-472a-8d38-5ce7abc0f403/fastMRI/multicoil_val'
+core_dir  = '/path/to/multicoil_val'
 val_files = sorted(glob.glob(core_dir + '/*.h5'))
 
 # Load pretrained model
-filename = "./pretrained_models/N6_n6_ACSlines0_Blocks4_lr2.0e-04_image.pt"
+filename = "pretrained_models/knee.pt"
 contents = torch.load(filename, map_location=device)
 hparams = contents['hparams']
 

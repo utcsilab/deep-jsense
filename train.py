@@ -28,13 +28,11 @@ np.random.seed(global_seed)
 torch.backends.cudnn.benchmark = True
 
 # Training files
-core_dir    = '/media/marius/19a01a60-06d7-472a-8d38-5ce7abc0f403/fastMRI/multicoil_train'
+core_dir    = '/path/to/multicoil_train'
 train_files = sorted(glob.glob(core_dir + '/*.h5'))
-train_files = train_files[:10]
 # Validation files
-core_dir  = '/media/marius/19a01a60-06d7-472a-8d38-5ce7abc0f403/fastMRI/multicoil_val'
+core_dir  = '/path/to/multicoil_val'
 val_files = sorted(glob.glob(core_dir + '/*.h5'))
-val_files = val_files[:2]
 
 # How much data are we using
 # 'num_slices' around 'central_slice' from each scan
