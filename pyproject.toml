@@ -1,7 +1,7 @@
 [project]
 name = "deep-jsense"
 version = "0.1.0"
-description = "Add your description here"
+description = "Deep J-Sense: Accelerated MRI Reconstruction via Unrolled Alternating Optimization"
 readme = "README.md"
 requires-python = "~=3.9.0"
 dependencies = [
@@ -10,9 +10,14 @@ dependencies = [
     "matplotlib==3.6.3",
     "numpy==1.19.5",
     "sigpy==0.1.27",
-    "torch==1.9.0+cu111",
+    "torch==1.13.1+cu117",
     "tqdm==4.67.3",
 ]
 
-[tool.uv]
-find-links = ["https://download.pytorch.org/whl/cu111/torch_stable.html"]
+[tool.uv.sources]
+torch = { index = "pytorch" }
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu117"
+explicit = true
