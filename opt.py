@@ -4,6 +4,7 @@
 import torch
 from utils import zdot_batch, zdot_single_batch, itemize
 
+
 class ZConjGrad(torch.nn.Module):
     """A class which implements conjugate gradient descent as a torch module.
     This implementation of conjugate gradient descent works as a standard torch module, with the functions forward
@@ -24,7 +25,7 @@ class ZConjGrad(torch.nn.Module):
         verbose (bool): Whether or not to print extra info to the console.
     """
 
-    def __init__(self, rhs, Aop_fun, max_iter=20, l2lam=0., eps=1e-6, verbose=True):
+    def __init__(self, rhs, Aop_fun, max_iter=20, l2lam=0.0, eps=1e-6, verbose=True):
         super(ZConjGrad, self).__init__()
 
         self.rhs = rhs
@@ -43,7 +44,15 @@ class ZConjGrad(torch.nn.Module):
         Returns:
             The forward pass on x.
         """
-        x, num_cg = zconjgrad(x, self.rhs, self.Aop_fun, max_iter=self.max_iter, l2lam=self.l2lam, eps=self.eps, verbose=self.verbose)
+        x, num_cg = zconjgrad(
+            x,
+            self.rhs,
+            self.Aop_fun,
+            max_iter=self.max_iter,
+            l2lam=self.l2lam,
+            eps=self.eps,
+            verbose=self.verbose,
+        )
         self.num_cg = num_cg
         return x
 
@@ -54,11 +63,11 @@ class ZConjGrad(torch.nn.Module):
         """
 
         return {
-                'num_cg': self.num_cg,
-                }
+            "num_cg": self.num_cg,
+        }
 
 
-def zconjgrad(x, b, Aop_fun, max_iter=10, l2lam=0., eps=1e-4, verbose=True):
+def zconjgrad(x, b, Aop_fun, max_iter=10, l2lam=0.0, eps=1e-4, verbose=True):
     """Conjugate Gradient Algorithm for a complex vector space applied to batches; assumes the first index is batch size.
     Args:
     x (complex-valued Tensor): The initial input to the algorithm.
@@ -69,7 +78,7 @@ def zconjgrad(x, b, Aop_fun, max_iter=10, l2lam=0., eps=1e-4, verbose=True):
     eps (float): Determines how small the residuals must be before termination…
     verbose (bool): If true, prints extra information to the console.
     Returns:
-    	A tuple containing the output vector x and the number of iterations performed.
+        A tuple containing the output vector x and the number of iterations performed.
     """
 
     # the first calc of the residual may not be necessary in some cases...
@@ -80,22 +89,21 @@ def zconjgrad(x, b, Aop_fun, max_iter=10, l2lam=0., eps=1e-4, verbose=True):
     rsold = rsnot
     rsnew = rsnot
 
-    eps_squared = eps ** 2
+    eps_squared = eps**2
 
     reshape = (-1,) + (1,) * (len(x.shape) - 1)
 
     num_iter = 0
 
     for i in range(max_iter):
-
         if verbose:
-            print('{i}: {rsnew}'.format(i=i, rsnew=itemize(torch.sqrt(rsnew))))
+            print("{i}: {rsnew}".format(i=i, rsnew=itemize(torch.sqrt(rsnew))))
 
         if rsnew.max() < eps_squared:
             break
 
-        Ap   = Aop_fun(p) + l2lam * p
-        pAp  = zdot_batch(p, Ap).real
+        Ap = Aop_fun(p) + l2lam * p
+        pAp = zdot_batch(p, Ap).real
         alpha = (rsold / pAp).reshape(reshape)
 
         x = x + alpha * p
@@ -111,6 +119,6 @@ def zconjgrad(x, b, Aop_fun, max_iter=10, l2lam=0., eps=1e-4, verbose=True):
         num_iter += 1
 
     if verbose:
-        print('FINAL: {rsnew}'.format(rsnew=torch.sqrt(rsnew)))
+        print("FINAL: {rsnew}".format(rsnew=torch.sqrt(rsnew)))
 
     return x, num_iter
