@@ -50,7 +50,7 @@ hparams.logging = False
 
 # Image-ResNet and MapResNet parameters
 hparams.img_channels = 64
-hparams.img_blocks = 4
+hparams.img_blocks = 6
 hparams.img_sep = False  # Do we use separate networks at each unroll?
 # Data
 hparams.downsample = 4  # R
@@ -242,9 +242,10 @@ for num_unrolls in range(hparams.meta_unrolls_start, hparams.meta_unrolls_end + 
             optimizer.step()
 
             # Verbose
-            print(
-                f"Epoch {epoch_idx}, Step {sample_idx}, Loss {loss.item():.4f}, SSIM {running_ssim:.4f}, RSS Loss {running_rss:.4f}, Coil Loss {running_coil:.4f}"
-            )
+            if sample_idx % 10 == 0:
+                print(
+                    f"Epoch {epoch_idx}, Step {sample_idx}, Loss {loss.item():.4f}, SSIM {running_ssim:.4f}, RSS Loss {running_rss:.4f}, Coil Loss {running_coil:.4f}"
+                )
 
         # Save model
         torch.save(
