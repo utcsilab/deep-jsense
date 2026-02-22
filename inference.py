@@ -28,7 +28,7 @@ hparams = contents["hparams"]
 
 model = MoDLDoubleUnroll(hparams)
 model = model.to(device)
-model.load_state_dict(contents["model_state_dict"], strict=False)
+model.load_state_dict(contents["model_state_dict"], strict=True)
 model.eval()
 
 # Validation dataset
