@@ -98,9 +98,9 @@ val_dataset = MCFullFastMRI(
     val_files,
     num_slices,
     center_slice,
+    downsample=hparams.downsample,
     use_acs=hparams.use_acs,
     acs_lines=hparams.acs_lines,
-    downsample=hparams.downsample,
     scramble=True,
     mps_kernel_shape=hparams.mps_kernel_shape,
     maps=None,
@@ -134,9 +134,9 @@ for num_unrolls in range(hparams.meta_unrolls_start, hparams.meta_unrolls_end + 
             previous_model = f"{target_dir}/ckpt_epoch{last_epoch - 1}.pt"
             contents = torch.load(previous_model)
             model.load_state_dict(contents["model_state_dict"])
-        last_epoch = hparams.num_epochs = num_unrolls
+        last_epoch = hparams.num_epochs = 1
     else:
-        hparams.num_epochs = 30
+        hparams.num_epochs = 20
 
     # Get optimizer and scheduler
     optimizer = Adam(model.parameters(), lr=hparams.lr)
@@ -153,11 +153,8 @@ for num_unrolls in range(hparams.meta_unrolls_start, hparams.meta_unrolls_end + 
         model.train()
         # For each batch
         for sample_idx, sample in tqdm(enumerate(train_loader)):
-            if sample["ksp"].shape[-2] < 320:
-                print("Skipping small scan!")
-                continue
-            if sample["ksp"].shape[-2] > 348:
-                print("Skipping large scan!")
+            # Skip small or large FoV samples
+            if sample["ksp"].shape[-2] < 320 or sample["ksp"].shape[-2] > 348:
                 continue
 
             # Move to CUDA
@@ -242,7 +239,7 @@ for num_unrolls in range(hparams.meta_unrolls_start, hparams.meta_unrolls_end + 
             optimizer.step()
 
             # Verbose
-            if sample_idx % 10 == 0:
+            if sample_idx % 100 == 0:
                 print(
                     f"Epoch {epoch_idx}, Step {sample_idx}, Loss {loss.item():.4f}, SSIM {running_ssim:.4f}, RSS Loss {running_rss:.4f}, Coil Loss {running_coil:.4f}"
                 )
@@ -305,7 +302,7 @@ for num_unrolls in range(hparams.meta_unrolls_start, hparams.meta_unrolls_end + 
                 )
                 val_rss_loss = pixel_loss(est_crop_rss, sample["ref_rss"])
                 print(
-                    f"Val. Epoch {epoch_idx}, Sample {sample_idx}, SSIM {val_ssim_loss.item():.4f}, RSS {val_rss_loss.item():.4f}"
+                    f"Val. Epoch {epoch_idx}, Sample {sample_idx}, SSIM {(1 - val_ssim_loss.item()):.4f}, RSS {val_rss_loss.item():.4f}"
                 )
 
             # Plot
