@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import sys
-sys.path.insert(0, '.')
-
 import torch, os, glob, copy
 import numpy as np
 from tqdm import tqdm
@@ -23,8 +20,6 @@ from matplotlib import pyplot as plt
 plt.rcParams.update({'font.size': 18})
 plt.ioff(); plt.close('all')
 
-os.environ["CUDA_DEVICE_ORDER"]    = "PCI_BUS_ID";
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 # Fix seed
 global_seed = 2000
 torch.manual_seed(global_seed)
@@ -33,67 +28,59 @@ np.random.seed(global_seed)
 torch.backends.cudnn.benchmark = True
 
 # Training files
-core_dir    = '/media/marius/easystore/marius/multicoil_train'
-maps_dir    = '/media/marius/easystore/marius/multicoil_train_Wc0_Espirit_maps'
+core_dir    = '/media/marius/19a01a60-06d7-472a-8d38-5ce7abc0f403/fastMRI/multicoil_train'
 train_files = sorted(glob.glob(core_dir + '/*.h5'))
-train_maps  = sorted(glob.glob(maps_dir + '/*.h5'))
+train_files = train_files[:10]
 # Validation files
-core_dir  = '/media/marius/easystore/marius/multicoil_val'
-maps_dir  = '/media/marius/easystore/marius/multicoil_val_Wc0_Espirit_maps'
+core_dir  = '/media/marius/19a01a60-06d7-472a-8d38-5ce7abc0f403/fastMRI/multicoil_val'
 val_files = sorted(glob.glob(core_dir + '/*.h5'))
-val_maps  = sorted(glob.glob(maps_dir + '/*.h5'))
+val_files = val_files[:2]
 
 # How much data are we using
 # 'num_slices' around 'central_slice' from each scan
-center_slice = 15 # Reasonable for fMRI
-num_slices   = 5 # Around center
+center_slice = 15 # Reasonable for FastMRI knee
+num_slices = 5
 
 # Config
-hparams         = DotMap()
-hparams.mode    = 'DeepJSense'
+hparams = DotMap()
+hparams.mode = 'DeepJSense'
 hparams.logging = False
 
-# Image-ResNet parameters
-# !!! Map-ResNet uses exactly the same for now
+# Image-ResNet and MapResNet parameters
 hparams.img_channels = 64
-hparams.img_blocks   = 4
-hparams.img_sep      = False # Do we use separate networks at each unroll?
+hparams.img_blocks = 4
+hparams.img_sep = False # Do we use separate networks at each unroll?
 # Data
 hparams.downsample = 4 # R
-hparams.use_acs    = True
-hparams.acs_lines  = 1 # Ignored if 'use_acs' = True
+hparams.use_acs = True
+hparams.acs_lines = 1 # Ignored if 'use_acs' = True
 # Model
-hparams.use_img_net        = True
-hparams.use_map_net        = True
-hparams.map_init           = 'estimated'
-hparams.img_init           = 'estimated'
-hparams.mps_kernel_shape   = [15, 15, 9] # Always 15 coils
-hparams.l2lam_init         = 0.01
-hparams.l2lam_train        = True
+hparams.use_img_net = True
+hparams.use_map_net = True
+hparams.map_init = 'estimated'
+hparams.img_init = 'estimated'
+hparams.mps_kernel_shape = [15, 15, 9] # [Coils, H, W]
+hparams.l2lam_init = 0.01
+hparams.l2lam_train = True
 hparams.meta_unrolls_start = 1 # Starting value
-hparams.meta_unrolls_end   = 6 # Ending value
-hparams.meta_preload       = 1 # Warm start from unrolls
-hparams.block1_max_iter    = 3
-hparams.block2_max_iter    = 3
-hparams.cg_eps             = 1e-6
-hparams.verbose            = False
-# Static training parameters
-hparams.lr           = 2e-3 # Finetune if desired
-hparams.step_size    = 10 # Number of epochs to decay with gamma
-hparams.decay_gamma  = 0.5
-hparams.grad_clip    = 1. # Clip gradients
-hparams.start_epoch  = 0 # Warm start from a specific epoch
-hparams.batch_size   = 1 # !!! Unsupported !!!
-hparams.pix_lam      = 0.
-hparams.ssim_lam     = 1.
-hparams.coil_lam     = 0.
+hparams.meta_unrolls_end = 6 # Ending value
+hparams.meta_preload = 1 # Warm start from unrolls
+hparams.block1_max_iter = 4
+hparams.block2_max_iter = 4
+hparams.cg_eps = 1e-6
+hparams.verbose = False
+# Training
+hparams.lr = 2e-4 # Finetune if desired
+hparams.step_size = 10 # Number of epochs to decay with gamma
+hparams.decay_gamma = 0.5
+hparams.grad_clip = 1. # Clip gradients
+hparams.batch_size = 1
+if hparams.batch_size > 1:
+    raise ValueError("Unsupported! Needs jagged tensor logic")
 
 # Global directory
-global_dir = 'models/MapSize%dx%d_lamTrain%d' % (
-    hparams.mps_kernel_shape[-2], hparams.mps_kernel_shape[-1],
-    hparams.l2lam_train)
-if not os.path.exists(global_dir):
-    os.makedirs(global_dir)
+global_dir = 'models'
+os.makedirs(global_dir, exist_ok=True)
 
 # Datasets
 train_dataset = MCFullFastMRI(train_files, num_slices, center_slice,
@@ -101,15 +88,14 @@ train_dataset = MCFullFastMRI(train_files, num_slices, center_slice,
                               use_acs=hparams.use_acs, acs_lines=hparams.acs_lines,
                               mps_kernel_shape=hparams.mps_kernel_shape,
                               maps=None)
-val_dataset   = MCFullFastMRI(val_files, num_slices, center_slice,
+val_dataset = MCFullFastMRI(val_files, num_slices, center_slice,
                               use_acs=hparams.use_acs, acs_lines=hparams.acs_lines,
                               downsample=hparams.downsample, scramble=True, 
                               mps_kernel_shape=hparams.mps_kernel_shape,
                               maps=None)
-train_loader  = DataLoader(train_dataset, batch_size=hparams.batch_size, 
+train_loader = DataLoader(train_dataset, batch_size=hparams.batch_size, 
                            shuffle=True, num_workers=8, drop_last=True)
-val_loader    = DataLoader(val_dataset, batch_size=hparams.batch_size,
-                           shuffle=False)
+val_loader = DataLoader(val_dataset, batch_size=hparams.batch_size, shuffle=False)
 
 # Get a sample-specific model
 model = MoDLDoubleUnroll(hparams)
@@ -121,35 +107,29 @@ total_params = np.sum([np.prod(p.shape) for p
                        in model.parameters() if p.requires_grad])
 print('Total parameters %d' % total_params)
 
-# Criterions
-ssim           = SSIMLoss().cuda()
+# Loss functions and metrics
+ssim = SSIMLoss().cuda()
 multicoil_loss = MCLoss().cuda()
-pixel_loss     = torch.nn.MSELoss(reduction='sum')
+pixel_loss = torch.nn.MSELoss(reduction='sum')
 
 # For each number of unrolls
 for num_unrolls in range(hparams.meta_unrolls_start, hparams.meta_unrolls_end+1):
     # Warm-up or not
     if num_unrolls < hparams.meta_unrolls_end:
-        hparams.num_epochs = 1
+        last_epoch = hparams.num_epochs = 1
     else:
         hparams.num_epochs = 30 # 20 is sufficient for five slices
     
     # Get optimizer and scheduler
     optimizer = Adam(model.parameters(), lr=hparams.lr)
-    scheduler = StepLR(optimizer, hparams.step_size, 
-                       gamma=hparams.decay_gamma)
+    scheduler = StepLR(optimizer, hparams.step_size, gamma=hparams.decay_gamma)
     
     # If we're beyond the first step, preload weights and state
     if num_unrolls > hparams.meta_preload:
-        target_dir = global_dir + '/\
-N%d_n%d_ACSlines%d' % (
-            num_unrolls-1, hparams.block1_max_iter,
-            hparams.acs_lines)
-        # Get and load previous weights
-        contents = torch.load(target_dir + '/ckpt_epoch%d.pt' % 0)
-        # contents = torch.load(target_dir + '/best_weights.pt')
+        target_dir = global_dir + '/N%d_n%d_ACSlines%d' % (num_unrolls-1, hparams.block1_max_iter, hparams.acs_lines)
+        # Load model with one less unroll
+        contents = torch.load(target_dir + '/ckpt_epoch%d.pt' % last_epoch-1)
         model.load_state_dict(contents['model_state_dict'])
-        optimizer.load_state_dict(contents['optimizer_state_dict'])
     
     # Logs
     best_loss = np.inf
@@ -157,25 +137,21 @@ N%d_n%d_ACSlines%d' % (
     loss_log = []
     coil_log = []
     running_loss, running_ssim, running_coil = 0, -1., 0.
-    local_dir = global_dir + '/\
-N%d_n%d_ACSlines%d' % (
-            num_unrolls, hparams.block1_max_iter,
-            hparams.acs_lines)
-    if not os.path.isdir(local_dir):
-        os.makedirs(local_dir)
-    
-    # Preload from the same model hyperparameters
-    if hparams.start_epoch > 0:
-        contents = torch.load(local_dir + '/ckpt_epoch%d.pt' % (hparams.start_epoch-1))
-        model.load_state_dict(contents['model_state_dict'])
-        optimizer.load_state_dict(contents['optimizer_state_dict'])
-        # Increment scheduler
-        scheduler.last_epoch = hparams.start_epoch-1
-    
+    local_dir = global_dir + '/N%d_n%d_ACSlines%d' % (num_unrolls, hparams.block1_max_iter, hparams.acs_lines)
+    os.makedirs(local_dir, exist_ok=True)
+        
     # For each epoch
-    for epoch_idx in range(hparams.start_epoch, hparams.num_epochs):
+    for epoch_idx in range(hparams.num_epochs):
+        model.train()
         # For each batch
         for sample_idx, sample in tqdm(enumerate(train_loader)):
+            if sample['ksp'].shape[-2] < 320:
+                print('Skipping small scan!')
+                continue
+            if sample['ksp'].shape[-2] > 348:
+                print('Skipping large scan!')
+                continue
+
             # Move to CUDA
             for key in sample.keys():
                 try:
@@ -184,8 +160,7 @@ N%d_n%d_ACSlines%d' % (
                     pass
             
             # Get outputs
-            est_img_kernel, est_map_kernel, est_ksp = \
-                model(sample, num_unrolls)
+            est_img_kernel, est_map_kernel, est_ksp = model(sample, num_unrolls)
             
             # Extra padding with zero lines - to restore resolution
             est_ksp_padded = F.pad(est_ksp, ( 
@@ -196,26 +171,22 @@ N%d_n%d_ACSlines%d' % (
             est_img_coils = ifft(est_ksp_padded)
             
             # RSS images
-            est_img_rss = torch.sqrt(
-                torch.sum(torch.square(torch.abs(est_img_coils)), axis=1))
+            est_img_rss = torch.sqrt(torch.sum(torch.square(torch.abs(est_img_coils)), axis=1))
             
             # Central crop
             est_crop_rss = crop(est_img_rss, 320, 320)
-            gt_rss       = sample['ref_rss']
-            data_range   = sample['data_range']
+            gt_rss = sample['ref_rss']
+            data_range = sample['data_range']
 
             # SSIM loss
-            ssim_loss = ssim(est_crop_rss[:, None], gt_rss[:, None],
-                             data_range)
+            ssim_loss = ssim(est_crop_rss[:, None], gt_rss[:, None], data_range)
             
-            # Other losses for tracking
+            # Other metrics for tracking
             with torch.no_grad():
-                pix_loss  = pixel_loss(est_crop_rss, gt_rss)
+                pix_loss = pixel_loss(est_crop_rss, gt_rss)
                 coil_loss = multicoil_loss(est_ksp, sample['gt_nonzero_ksp'])
             
-            loss = hparams.ssim_lam * ssim_loss + hparams.coil_lam * coil_loss # For now
-           
-            # Skip if NaN
+            loss = ssim_loss
             if np.isnan(loss.item()):
                 print('Skipping a NaN loss!')
                 # Free up as much memory as possible
@@ -225,13 +196,11 @@ N%d_n%d_ACSlines%d' % (
                 del est_img_kernel, est_map_kernel, est_ksp
                 del sample
                 torch.cuda.empty_cache()
-                # Need a dummy loss
                 loss = None
 
                 # Reload the previous stable state
                 model.load_state_dict(stable_model)
                 optimizer.load_state_dict(stable_opt)
-
                 continue
 
             # Keep a running loss
@@ -243,14 +212,14 @@ N%d_n%d_ACSlines%d' % (
             ssim_log.append(running_ssim)
             coil_log.append(running_coil)
            
-            # Save a stable model state
+            # Save the stable model state
             stable_model = copy.deepcopy(model.state_dict())
-            stable_opt   = copy.deepcopy(optimizer.state_dict())
+            stable_opt = copy.deepcopy(optimizer.state_dict())
 
             # Backprop
             optimizer.zero_grad()
             loss.backward()
-            # For MoDL (?), clip gradients
+            # Clip gradients for stability
             torch.nn.utils.clip_grad_norm(model.parameters(), hparams.grad_clip)
             optimizer.step()
             
@@ -301,8 +270,7 @@ N%d_n%d_ACSlines%d' % (
                 except:
                     pass
             
-            # Get outputs
-            with torch.no_grad():
+            with torch.inference_mode():
                 # Estimate
                 est_img_kernel, est_map_kernel, est_ksp = \
                     model(sample, num_unrolls)
@@ -323,7 +291,7 @@ N%d_n%d_ACSlines%d' % (
                 # Losses
                 ssim_loss = ssim(est_crop_rss[:, None], sample['ref_rss'][:, None],
                                  sample['data_range'])
-                l1_loss   = pixel_loss(est_crop_rss, sample['ref_rss'])
+                l1_loss = pixel_loss(est_crop_rss, sample['ref_rss'])
                 
             # Plot
             plt.subplot(2, 4, sample_idx+1)
@@ -337,11 +305,3 @@ N%d_n%d_ACSlines%d' % (
         plt.tight_layout()
         plt.savefig(local_dir + '/val_samples_epoch%d.png' % epoch_idx, dpi=300)
         plt.close()
-        
-        # Plot training dynamics
-        plt.figure()
-        plt.subplot(1, 2, 1); plt.semilogy(loss_log, linewidth=2.); 
-        plt.grid(); plt.xlabel('Step'); plt.title('Training pix. loss')
-        plt.subplot(1, 2, 2); plt.semilogy(ssim_log, linewidth=2.); 
-        plt.grid(); plt.xlabel('Step'); plt.title('Training 1 - SSIM')
-        plt.tight_layout()
