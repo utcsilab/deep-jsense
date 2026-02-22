@@ -113,8 +113,6 @@ val_loader = DataLoader(val_dataset, batch_size=hparams.batch_size, shuffle=Fals
 # Get a sample-specific model
 model = MoDLDoubleUnroll(hparams)
 model = model.cuda()
-# Switch to train
-model.train()
 # Count parameters
 total_params = np.sum([np.prod(p.shape) for p in model.parameters() if p.requires_grad])
 print(f"Total parameters {total_params}")
@@ -132,7 +130,7 @@ for num_unrolls in range(hparams.meta_unrolls_start, hparams.meta_unrolls_end + 
             # Load model with one less unroll
             target_dir = f"{global_dir}/N{num_unrolls - 1}_n{hparams.block1_max_iter}"
             previous_model = f"{target_dir}/ckpt_epoch{last_epoch - 1}.pt"
-            contents = torch.load(previous_model)
+            contents = torch.load(previous_model, weights_only=False)
             model.load_state_dict(contents["model_state_dict"])
         last_epoch = hparams.num_epochs = 1
     else:

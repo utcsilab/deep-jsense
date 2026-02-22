@@ -23,7 +23,7 @@ val_files = sorted(glob.glob(f"{args.data_dir}/multicoil_val/*.h5"))
 
 # Load pretrained model
 filename = "pretrained_models/knee.pt"
-contents = torch.load(filename, map_location=device)
+contents = torch.load(filename, weights_only=False, map_location=device)
 hparams = contents["hparams"]
 
 model = MoDLDoubleUnroll(hparams)
