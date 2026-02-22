@@ -33,9 +33,7 @@ class MoDLDoubleUnroll(torch.nn.Module):
         self.mode        = hparams.mode
         self.use_img_net = hparams.use_img_net
         self.use_map_net = hparams.use_map_net
-        # Map modes
-        self.map_mode = hparams.map_mode
-        self.map_norm = hparams.map_norm
+
         # Initial variables
         self.map_init = hparams.map_init
         self.img_init = hparams.img_init
