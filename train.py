@@ -113,8 +113,6 @@ val_loader = DataLoader(val_dataset, batch_size=hparams.batch_size, shuffle=Fals
 # Get a sample-specific model
 model = MoDLDoubleUnroll(hparams)
 model = model.cuda()
-# Switch to train
-model.train()
 # Count parameters
 total_params = np.sum([np.prod(p.shape) for p in model.parameters() if p.requires_grad])
 print(f"Total parameters {total_params}")
