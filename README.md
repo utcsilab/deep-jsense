@@ -12,4 +12,4 @@ The passed directory must contain the `multicoil_train` and `multicoil_val` sub-
 # Inference on FastMRI knee scans
 Run `uv run inference.py --data_dir /path/to/fastMRI`.
 
-The passed directory must contan the `multicoil_val` sub-directory with FastMRI `.h5` unmodified files inside.
+The passed directory must contain the `multicoil_val` sub-directory with FastMRI `.h5` unmodified files inside.
